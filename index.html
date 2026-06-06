@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Viajes Espaciales - Héroe Cinematográfico</title>
+    
+    <!-- 1. Fuentes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Preloads -->
+    <link rel="preload" as="video" href="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260306_115329_5e00c9c5-4d69-49b7-94c3-9c31c60bb644.mp4" type="video/mp4" />
+    <link rel="preload" as="image" href="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop" type="image/jpeg" />
+
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        heading: ["'Instrument Serif'", "serif"],
+                        body: ["'Barlow'", "sans-serif"],
+                    },
+                    colors: {
+                        background: "hsl(213, 45%, 67%)",
+                        foreground: "hsl(0, 0%, 100%)",
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Framer Motion -->
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+
+    <style>
+        body { margin: 0; padding: 0; background-color: #000; overflow-x: hidden; font-family: 'Barlow', sans-serif; }
+        
+        /* 3. Liquid Glass CSS */
+        .liquid-glass {
+            background: rgba(255, 255, 255, 0.01);
+            background-blend-mode: luminosity;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: none;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .liquid-glass::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1.4px;
+            background: linear-gradient(180deg,
+                rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.15) 20%,
+                rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%,
+                rgba(255,255,255,0.15) 80%, rgba(255,255,255,0.45) 100%);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .liquid-glass-strong {
+            background: rgba(255, 255, 255, 0.01);
+            background-blend-mode: luminosity;
+            backdrop-filter: blur(50px);
+            -webkit-backdrop-filter: blur(50px);
+            border: none;
+            box-shadow: 4px 4px 4px rgba(0,0,0,0.05), inset 0 1px 1px rgba(255,255,255,0.15);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .liquid-glass-strong:hover {
+            transform: scale(1.02);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .liquid-glass-strong::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1.4px;
+            background: linear-gradient(180deg,
+                rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.2) 20%,
+                rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%,
+                rgba(255,255,255,0.2) 80%, rgba(255,255,255,0.5) 100%);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        h1, h2, h3, p, span, a, button {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+    </style>
+</head>
+<body>
+    <div id="root" style="height: 100vh; width: 100vw;"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { motion } = window.Motion;
+
+        // Custom Hook para detectar visibilidad
+        const useIsVisible = (ref) => {
+            const [isIntersecting, setIntersecting] = useState(false);
+            useEffect(() => {
+                const observer = new IntersectionObserver(([entry]) => {
+                    if (entry.isIntersecting) {
+                        setIntersecting(true);
+                        observer.disconnect();
+                    }
+                });
+                if (ref.current) observer.observe(ref.current);
+                return () => observer.disconnect();
+            }, [ref]);
+            return isIntersecting;
+        };
+
+        // Componente BlurText
+        const BlurText = ({ text, className = '', delay = 100, animateBy = 'words', direction = 'bottom' }) => {
+            const ref = useRef(null);
+            const isVisible = useIsVisible(ref);
+            const items = animateBy === 'words' ? text.split(' ') : text.split('');
+
+            return (
+                <motion.h1 
+                    ref={ref} 
+                    className={`flex flex-wrap ${className}`}
+                    style={{ justifyContent: 'center' }}
+                >
+                    {items.map((item, i) => (
+                        <motion.span
+                            key={i}
+                            initial={{ 
+                                filter: 'blur(10px)', 
+                                opacity: 0, 
+                                y: direction === 'bottom' ? 50 : -50 
+                            }}
+                            animate={isVisible ? { 
+                                filter: 'blur(0px)', 
+                                opacity: 1, 
+                                y: 0 
+                            } : {}}
+                            transition={{ 
+                                delay: i * (delay / 1000), 
+                                duration: 0.5,
+                                ease: "easeOut"
+                            }}
+                            className={animateBy === 'words' ? 'mr-2 inline-block' : ''}
+                            style={{ display: 'inline-block' }}
+                        >
+                            {item}
+                        </motion.span>
+                    ))}
+                </motion.h1>
+            );
+        };
+
+        // Componente HeroSection
+        const HeroSection = () => {
+            return (
+                <section className="relative h-screen w-full overflow-hidden font-body text-foreground bg-black">
+                    {/* Video de Fondo */}
+                    <video
+                        className="absolute inset-0 h-full w-full object-cover z-0"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        preload="auto"
+                        poster="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop"
+                    >
+                        <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260306_115329_5e00c9c5-4d69-49b7-94c3-9c31c60bb644.mp4" type="video/mp4" />
+                    </video>
+
+                    {/* Overlay */}
+                    <div className="absolute inset-0 bg-black/20 z-0" />
+
+                    {/* Contenedor de Contenido */}
+                    <div className="relative z-10 flex flex-col min-h-screen">
+                        
+                        {/* Barra de Navegación */}
+                        <nav className="fixed top-4 left-0 right-0 z-50 px-6 lg:px-16 pointer-events-none">
+                            <div className="flex items-center justify-between pointer-events-auto">
+                                {/* Logo */}
+                                <div className="h-12 w-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg">
+                                    <span className="font-heading italic text-2xl text-white">V</span>
+                                </div>
+
+                                {/* Navegación Desktop */}
+                                <div className="hidden md:flex items-center liquid-glass rounded-full px-2 py-2 shadow-lg">
+                                    {['Inicio', 'Viajes', 'Mundos', 'Innovación', 'Planifica'].map((item) => (
+                                        <a
+                                            key={item}
+                                            href="#"
+                                            className="px-3 py-2 text-sm font-medium text-white/90 hover:text-white transition-colors hover:bg-white/5 rounded-full"
+                                        >
+                                            {item}
+                                        </a>
+                                    ))}
+                                    <button className="ml-2 bg-white text-black rounded-full px-4 py-1.5 text-sm font-semibold flex items-center gap-1.5 hover:bg-gray-100 transition-colors shadow-md">
+                                        Reservar Lugar
+                                        {/* Icono Flecha SVG Inline */}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
+                                    </button>
+                                </div>
+                                
+                                {/* Menú Móvil */}
+                                <button className="md:hidden text-white p-2 liquid-glass rounded-full">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+                                </button>
+                            </div>
+                        </nav>
+
+                        {/* Contenido Hero */}
+                        <div className="flex-1 flex flex-col items-center justify-center text-center px-4 pt-20 pb-12">
+                            
+                            {/* Badge / Etiqueta */}
+                            <motion.div 
+                                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                transition={{ duration: 0.6, ease: "easeOut" }}
+                                className="liquid-glass rounded-full px-1.5 py-1.5 flex items-center mb-8 shadow-lg max-w-full"
+                            >
+                                <span className="bg-white text-black rounded-full px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider shrink-0">
+                                    Nuevo
+                                </span>
+                                <span className="text-xs sm:text-sm text-white/90 px-3 font-light truncate">
+                                    Primera Tripulación a Marte Llega en 2026
+                                </span>
+                            </motion.div>
+
+                            {/* Título Principal */}
+                            <div className="w-full max-w-5xl mb-6">
+                                <BlurText
+                                    text="Más Allá del Cielo, A Través del Universo"
+                                    className="text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-heading italic text-white leading-[0.9] justify-center tracking-tight"
+                                    delay={120}
+                                    animateBy="words"
+                                    direction="bottom"
+                                />
+                            </div>
+
+                            {/* Subtítulo */}
+                            <motion.p
+                                initial={{ filter: 'blur(10px)', opacity: 0, y: 20 }}
+                                animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
+                                transition={{ duration: 0.8, delay: 0.6 }}
+                                className="mt-4 text-sm sm:text-base text-white/80 max-w-xl mx-auto font-light leading-relaxed px-4"
+                            >
+                                Descubre el universo de formas antes inimaginables. Nuestras naves pioneras y la ingeniería revolucionaria ponen la exploración del espacio profundo al alcance de todos: seguro y extraordinario.
+                            </motion.p>
+
+                            {/* Botones CTA */}
+                            <motion.div
+                                initial={{ filter: 'blur(10px)', opacity: 0, y: 20 }}
+                                animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
+                                transition={{ duration: 0.8, delay: 0.9 }}
+                                className="flex flex-col sm:flex-row items-center gap-6 mt-10"
+                            >
+                                <button className="liquid-glass-strong rounded-full px-8 py-3.5 text-sm font-semibold text-white flex items-center gap-2.5 group shadow-xl">
+                                    Comienza tu Viaje
+                                    {/* Icono Flecha SVG Inline */}
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
+                                </button>
+                                <button className="text-white text-sm font-medium flex items-center gap-2.5 hover:text-white/90 transition-colors group px-4 py-2 rounded-full hover:bg-white/5">
+                                    <div className="rounded-full border border-white/30 p-2 group-hover:border-white group-hover:bg-white/10 transition-all">
+                                        {/* Icono Play SVG Inline */}
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 fill-current ml-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                    </div>
+                                    Ver Despegue
+                                </button>
+                            </motion.div>
+                        </div>
+
+                        {/* Barra de Socios */}
+                        <div className="flex flex-col items-center gap-6 pb-10 px-4">
+                            <div className="liquid-glass rounded-full px-5 py-2 text-[10px] sm:text-xs font-medium text-white/60 uppercase tracking-widest text-center border border-white/5">
+                                Colaborando con los principales pioneros aeroespaciales globally
+                            </div>
+                            <div className="flex flex-wrap justify-center items-center gap-x-10 gap-y-4 opacity-70">
+                                {['Aeon', 'Vela', 'Apex', 'Orbit', 'Zeno'].map((partner) => (
+                                    <span
+                                        key={partner}
+                                        className="text-2xl md:text-3xl font-heading italic text-white tracking-tight hover:opacity-100 hover:scale-110 transition-all duration-300 cursor-default select-none"
+                                    >
+                                        {partner}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const App = () => {
+            return <HeroSection />;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
