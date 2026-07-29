@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: valoraia
+    runtime: node
+    plan: free
+    buildCommand: npm run check
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeployTrigger: commit
