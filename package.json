@@ -1,0 +1,8 @@
+{
+  "name":"valoraia",
+  "version":"1.0.0",
+  "private":true,
+  "description":"Plataforma profesional de valuación inmobiliaria asistida",
+  "scripts":{"start":"node server.js","check":"node --check app.js && node --check server.js"},
+  "engines":{"node":">=20 <23"}
+}
